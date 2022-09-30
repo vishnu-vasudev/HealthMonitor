@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "919077555665",
+    "project_id": "monitor-cf836",
+    "storage_bucket": "monitor-cf836.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:919077555665:android:0e7b794a74ddf9fa1fa4f0",
+        "android_client_info": {
+          "package_name": "com.temp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "919077555665-uui4vpqca2c81p6r7c41pegjco07onn9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgDW938JP3uWHh2sve9WmE7vM2oz3POZQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "919077555665-uui4vpqca2c81p6r7c41pegjco07onn9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
