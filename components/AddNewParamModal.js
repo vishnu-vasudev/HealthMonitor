@@ -21,6 +21,7 @@ const AddNewParamModal = ({
   const [showModal, setShowModal] = useState();
   const {user} = useContext(AuthContext);
   const [newParam, setNewParam] = useState();
+  const [newUnit, setNewUnit] = useState();
   // const scaleValue = useRef(new Animated.Value(0).current);
 
   const closeIcon = <AIcon name="close" size={22} />;
@@ -47,7 +48,20 @@ const AddNewParamModal = ({
     updateVisible(false);
   };
 
+  const storeData = () => {
+    firestore()
+      .collection(`${newParam}`)
+      .doc('Unit')
+      .set({
+        unit: newUnit,
+      })
+      .then(() => {
+        console.log('New parameter created with unit');
+      });
+  };
+
   const handleSubmit = () => {
+    storeData();
     updateNewParam(newParam);
     setShowModal(false);
     updateVisible(false);
@@ -60,11 +74,14 @@ const AddNewParamModal = ({
         <View style={styles.modalContainer}>
           <View style={styles.modalData}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                Enter what data need to be added
-              </Text>
+              <Text style={styles.inputLabel}>Enter the name</Text>
               <TextInput
                 onChangeText={input => setNewParam(input)}
+                style={styles.inputBox}
+              />
+              <Text style={styles.inputLabel}>Enter the unit</Text>
+              <TextInput
+                onChangeText={input => setNewUnit(input)}
                 style={styles.inputBox}
               />
               <TouchableOpacity onPress={handleSubmit}>
@@ -109,7 +126,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   inputContainer: {
-    backgroundColor: '#A5B2B5',
+    backgroundColor: '#f3f6f5',
     paddingBottom: 20,
     borderRadius: 20,
     marginLeft: 1,
@@ -127,6 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginTop: 10,
     fontSize: 20,
+    alignSelf: 'center',
   },
   button: {
     marginTop: 20,

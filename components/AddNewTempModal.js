@@ -11,11 +11,18 @@ import firestore from '@react-native-firebase/firestore';
 
 import AIcon from 'react-native-vector-icons/dist/AntDesign';
 import {AuthContext} from '../ContextProvider/AuthProvider';
+import Animated from 'react-native-reanimated';
 
-const AddNewTempModal = ({visible, updateVisible}) => {
+const AddNewTempModal = ({
+  collection,
+  visible,
+  updateVisible,
+  unit,
+  displayName,
+}) => {
   const [showModal, setShowModal] = useState();
   const {user} = useContext(AuthContext);
-  // const scaleValue = useRef(new Animated.Value(0).current);
+  const [scaleValue] = useState(new Animated.Value(0));
   const [bodyTemp, setBodyTemp] = useState();
   var [textInput] = useState();
 
@@ -28,11 +35,11 @@ const AddNewTempModal = ({visible, updateVisible}) => {
   const toggleModal = () => {
     if (visible) {
       setShowModal(true);
-      // Animated.spring(scaleValue, {
-      //   toValue: 1,
-      //   duration: 300,
-      //   useNativeDriver: true,
-      // }).start();
+      Animated.timing(scaleValue, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     } else {
       setShowModal(false);
     }
@@ -40,14 +47,15 @@ const AddNewTempModal = ({visible, updateVisible}) => {
 
   const storeData = () => {
     firestore()
-      .collection('newTemp')
+      .collection(`${collection}`)
       .add({
-        temp: bodyTemp,
+        value: bodyTemp,
         user_id: user.uid,
         createdAt: firestore.FieldValue.serverTimestamp(),
+        unit: unit,
       })
       .then(() => {
-        console.log('Temperature added!');
+        console.log('Value added!');
       });
     textInput.clear();
   };
@@ -57,14 +65,20 @@ const AddNewTempModal = ({visible, updateVisible}) => {
     updateVisible(false);
   };
 
+  const handleSubmit = () => {
+    storeData();
+    handleClose();
+  };
+
   return (
     <Modal transparent={true} visible={showModal}>
       <View style={styles.modalBackground}>
-        <View style={styles.modalContainer}>
+        <Animated.View
+          style={[styles.modalContainer, {transform: [{scale: scaleValue}]}]}>
           <View style={styles.modalData}>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
-                Enter your current body temperature
+                Enter your current {displayName}
               </Text>
               <View style={styles.inputGroup}>
                 <TextInput
@@ -74,10 +88,10 @@ const AddNewTempModal = ({visible, updateVisible}) => {
                   style={styles.inputBox}
                   onChangeText={input => setBodyTemp(input)}
                 />
-                <Text style={styles.farenheitText}>°F</Text>
+                <Text style={styles.farenheitText}>{unit}</Text>
               </View>
               <View style={styles.buttonContainer}>
-                <TouchableOpacity onPress={storeData}>
+                <TouchableOpacity onPress={handleSubmit}>
                   <Text style={styles.button}>Submit</Text>
                 </TouchableOpacity>
               </View>
@@ -86,7 +100,7 @@ const AddNewTempModal = ({visible, updateVisible}) => {
           <Text onPress={handleClose} style={styles.closeBtn}>
             {closeIcon}
           </Text>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -120,7 +134,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   inputContainer: {
-    backgroundColor: '#A5B2B5',
+    backgroundColor: '#f3f6f5',
     paddingBottom: 20,
     borderRadius: 20,
     marginLeft: 1,

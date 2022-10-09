@@ -8,48 +8,85 @@ import {
   ScrollView,
 } from 'react-native';
 import {AuthContext} from '../ContextProvider/AuthProvider';
+
 import firestore from '@react-native-firebase/firestore';
 import Icon from 'react-native-vector-icons/dist/MaterialCommunityIcons';
 import FIcon from 'react-native-vector-icons/dist/FontAwesome';
-import MIcon from 'react-native-vector-icons/dist/MaterialIcons';
 import IIcon from 'react-native-vector-icons/dist/Ionicons';
 import FoIcon from 'react-native-vector-icons/dist/Fontisto';
 import AIcon from 'react-native-vector-icons/dist/AntDesign';
 import AddNewParamModal from './AddNewParamModal';
 
 const HomePage = ({navigation}) => {
-  const {user, logout} = useContext(AuthContext);
-  const [date, setDate] = useState();
-  const [lastData, setLastData] = useState();
+  const {user} = useContext(AuthContext);
   const [newParamList, setNewParamList] = useState([]);
+  const [array] = useState([]);
   const [visible, setVisible] = useState(false);
   const [newParamName, setNewParamName] = useState();
   const [isParam, setIsParam] = useState(false);
+  const [tempCardValue, setTempCardValue] = useState();
+  const [heartCardValue, setHeartCardValue] = useState();
+  const [spo2CardValue, setSpo2CardValue] = useState();
+  const [sugarCardValue, setSugarCardValue] = useState();
+  const [tempDate, setTempDate] = useState();
+  const [heartDate, setHeartDate] = useState();
+  const [spo2Date, setSpo2Date] = useState();
+  const [sugarDate, setSugarDate] = useState();
+  const [unit, setUnit] = useState('');
 
-  const handWave = <Icon name="hand-wave" size={25} color="#fbc494" />;
   const thermometerIcon = <FIcon name="thermometer" size={25} />;
   const heartBeatIcon = <FIcon name="heartbeat" size={25} />;
-  const logoutIcon = <MIcon name="logout" size={25} />;
   const line = <IIcon name="ios-remove-outline" size={70} />;
   const spo2Icon = <FoIcon name="blood-drop" size={25} />;
   const bloodSugarIcon = <Icon name="diabetes" size={25} />;
   const plusIcon = <AIcon name="pluscircleo" size={20} />;
+  const menuIcon = <IIcon name="menu" size={33} color="#1F3F49" />;
+
+  const [allCollection] = useState({
+    temp: 'newTemp',
+    heartRate: 'heartRate',
+    spo2: 'spo2',
+    bloodGlucose: 'bloodGlucose',
+  });
 
   useEffect(() => {
-    getData();
+    getData(allCollection.temp);
+    getData(allCollection.heartRate);
+    getData(allCollection.spo2);
+    getData(allCollection.bloodGlucose);
   }, []);
 
-  const getData = () => {
-    let data = [];
+  useEffect(() => {
+    getD(unit);
+  }, [tempDate]);
+
+  const getD = newk => {
     firestore()
-      .collection('newTemp')
+      .collection('Stress')
+      .doc('Unit')
+      .get()
+      .then(documentSnapshot => {
+        if (newk === 'k') {
+          setTemp(documentSnapshot.data().unit);
+        }
+        console.log(typeof documentSnapshot.data().unit);
+        console.log(temp)
+      });
+
+  };
+
+  const getData = dataB => {
+    let data;
+    firestore()
+      .collection(`${dataB}`)
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .limit(1)
       .get()
       .then(querySnapshot => {
         querySnapshot.forEach(documentSnapshot => {
-          data.push(documentSnapshot.data().temp);
+          data =
+            documentSnapshot.data().value + ' ' + documentSnapshot.data().unit;
           const timestamp = documentSnapshot.data().createdAt.toDate();
           const time = new Intl.DateTimeFormat('en-IN', {
             year: 'numeric',
@@ -58,86 +95,119 @@ const HomePage = ({navigation}) => {
             hour: '2-digit',
             minute: '2-digit',
           }).format(timestamp);
-          setDate(time);
+          if (dataB === 'newTemp') {
+            setTempDate(time);
+          } else if (dataB === 'heartRate') {
+            setHeartDate(time);
+          } else if (dataB === 'spo2') {
+            setSpo2Date(time);
+          } else {
+            setSugarDate(time);
+          }
         });
-        setLastData(data);
+        if (dataB === 'newTemp') {
+          setTempCardValue(data);
+        } else if (dataB === 'heartRate') {
+          setHeartCardValue(data);
+        } else if (dataB === 'spo2') {
+          setSpo2CardValue(data);
+        } else {
+          setSugarCardValue(data);
+        }
       });
   };
 
   if (isParam) {
-    setNewParamList(
-      <View style={[style.secondCard, style.card]}>
+    array.push(
+      <View key={newParamName} style={[style.secondCard, style.card]}>
         <Text style={[style.cardText, style.cardHeader]}>{newParamName}</Text>
       </View>,
-    ),
-      setIsParam(false);
+    );
+    setNewParamList(array);
+    setIsParam(false);
   }
 
+
   return (
-    <ScrollView style={style.container}>
-      <AddNewParamModal
-        visible={visible}
-        updateVisible={setVisible}
-        updateNewParam={setNewParamName}
-        updateIsParam={setIsParam}
-      />
-      <Text style={style.lineIcon}>{line}</Text>
-      <View style={style.headContainer}>
-        <View>
-          <Text style={style.helloText}>
-            Hello{handWave} {newParamName}
-          </Text>
-          <Text style={style.nameText}>{user.email}</Text>
-        </View>
-        <TouchableOpacity onPress={() => logout()}>
-          <Text style={style.logoutBtn}>{logoutIcon}</Text>
-        </TouchableOpacity>
+    <>
+      <View>
+        <Text onPress={() => navigation.openDrawer()} style={style.menuIcon}>
+          {menuIcon}
+        </Text>
       </View>
-      <View style={style.dataContainer}>
-        <Text style={style.yourDataText}>Your recent Data</Text>
-        <View>
-          <TouchableWithoutFeedback
-            onPress={() =>
-              navigation.navigate('BodyTemp', {name: 'Body Temperature'})
-            }>
-            <View style={[style.firstCard, style.card]}>
-              <Text style={[style.cardText, style.cardHeader]}>
-                {thermometerIcon} Body Temperature
-              </Text>
-              <Text style={style.cardText}>
-                Your latest recorded body temperature
-              </Text>
-              <Text style={style.lastTempText}>{lastData}°F</Text>
-              <Text style={style.lastDataDate}>on {date}</Text>
-            </View>
-          </TouchableWithoutFeedback>
-          <TouchableWithoutFeedback
-            onPress={() =>
-              navigation.navigate('BodyTemp', {name: 'Heart Rate'})
-            }>
-            <View style={[style.secondCard, style.card]}>
-              <Text style={[style.cardText, style.cardHeader]}>
-                {heartBeatIcon} Heart Rate
-              </Text>
-            </View>
-          </TouchableWithoutFeedback>
-          <View style={[style.secondCard, style.card]}>
-            <Text style={[style.cardText, style.cardHeader]}>
-              {spo2Icon} SpO2
-            </Text>
+      <ScrollView style={style.container}>
+        <AddNewParamModal
+          visible={visible}
+          updateVisible={setVisible}
+          updateNewParam={setNewParamName}
+          updateIsParam={setIsParam}
+        />
+        <Text style={style.lineIcon}>{line}</Text>
+        <View style={style.dataContainer}>
+          <Text style={style.yourDataText}>Your recent Data</Text>
+          <View>
+            <TouchableWithoutFeedback
+              onPress={() =>
+                navigation.navigate('BodyTemp', {name: 'newTemp'})
+              }>
+              <View style={[style.firstCard, style.card]}>
+                <Text style={[style.cardText, style.cardHeader]}>
+                  {thermometerIcon} Body Temperature
+                </Text>
+                <View style={style.cardResultContainer}>
+                  <Text style={style.lastTempText}>{tempCardValue}</Text>
+                  <Text style={style.lastDataDate}>on {tempDate}</Text>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback
+              onPress={() =>
+                navigation.navigate('BodyTemp', {name: 'heartRate'})
+              }>
+              <View style={[style.secondCard, style.card]}>
+                <Text style={[style.cardText, style.cardHeader]}>
+                  {heartBeatIcon} Heart Rate
+                </Text>
+                <View style={style.cardResultContainer}>
+                  <Text style={style.lastTempText}>{heartCardValue}</Text>
+                  <Text style={style.lastDataDate}>on {heartDate}</Text>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback
+              onPress={() => navigation.navigate('BodyTemp', {name: 'spo2'})}>
+              <View style={[style.secondCard, style.card]}>
+                <Text style={[style.cardText, style.cardHeader]}>
+                  {spo2Icon} SpO2
+                </Text>
+                <View style={style.cardResultContainer}>
+                  <Text style={style.lastTempText}>{spo2CardValue}</Text>
+                  <Text style={style.lastDataDate}>on {spo2Date}</Text>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback
+              onPress={() =>
+                navigation.navigate('BodyTemp', {name: 'bloodGlucose'})
+              }>
+              <View style={[style.secondCard, style.card]}>
+                <Text style={[style.cardText, style.cardHeader]}>
+                  {bloodSugarIcon} Blood Glucose
+                </Text>
+                <View style={style.cardResultContainer}>
+                  <Text style={style.lastTempText}>{sugarCardValue}</Text>
+                  <Text style={style.lastDataDate}>on {sugarDate}</Text>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+            {newParamList.map(value => value)}
           </View>
-          <View style={[style.secondCard, style.card]}>
-            <Text style={[style.cardText, style.cardHeader]}>
-              {bloodSugarIcon} Blood Glucose
-            </Text>
-          </View>
-          {newParamList}
+          <TouchableOpacity onPress={() => setVisible(true)}>
+            <Text style={style.newParamButton}>{plusIcon} Add new</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => setVisible(true)}>
-          <Text style={style.newParamButton}>{plusIcon} Add new</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 };
 
@@ -145,7 +215,6 @@ export default HomePage;
 
 const style = StyleSheet.create({
   container: {
-    marginTop: 80,
     backgroundColor: 'white',
     flex: 1,
     borderTopLeftRadius: 50,
@@ -153,38 +222,6 @@ const style = StyleSheet.create({
   },
   lineIcon: {
     alignSelf: 'center',
-  },
-  headContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingLeft: 50,
-    backgroundColor: 'white',
-    borderRadius: 60,
-    margin: 5,
-    paddingBottom: 50,
-  },
-  helloText: {
-    marginTop: 30,
-    fontSize: 20,
-    color: 'black',
-    paddingBottom: 5,
-    fontWeight: 'bold',
-  },
-  nameText: {
-    fontSize: 30,
-    color: '#b5b5b5',
-    fontWeight: 'bold',
-  },
-  logoutBtn: {
-    marginRight: 10,
-    marginTop: 10,
-    borderRadius: 5,
-    backgroundColor: '#8b4517',
-    width: 40,
-    height: 30,
-    textAlign: 'center',
-    paddingTop: 5,
-    color: 'white',
   },
   yourDataText: {
     color: 'black',
@@ -200,7 +237,7 @@ const style = StyleSheet.create({
   card: {
     padding: 20,
     backgroundColor: '#f3f6f5',
-    height: 230,
+    height: 160,
     marginBottom: 20,
     borderRadius: 30,
     width: 370,
@@ -211,20 +248,38 @@ const style = StyleSheet.create({
     paddingBottom: 0,
   },
   cardHeader: {
-    fontSize: 20,
-    alignSelf: 'flex-end',
+    color: '#1F3F49',
+    fontSize: 30,
+    alignSelf: 'flex-start',
     paddingBottom: 30,
+    fontWeight: 'bold',
+  },
+  cardResultContainer: {
+    alignItems: 'flex-end',
   },
   lastTempText: {
-    fontSize: 40,
+    fontSize: 30,
     fontWeight: 'bold',
-    color: 'red',
+    color: '#83af9b',
   },
   lastDataDate: {
-    color: 'red',
+    color: 'grey',
     fontSize: 15,
   },
   newParamButton: {
     fontSize: 20,
+  },
+  menuIcon: {
+    marginTop: 25,
+    marginLeft: 20,
+    borderRadius: 50,
+    backgroundColor: 'white',
+    borderWidth: 3,
+    width: 45,
+    textAlign: 'center',
+    position: 'absolute',
+    zIndex: 40,
+    paddingTop: 5,
+    borderColor: '#1F3F49',
   },
 });

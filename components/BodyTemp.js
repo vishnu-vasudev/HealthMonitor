@@ -8,65 +8,81 @@ import {
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import {AuthContext} from '../ContextProvider/AuthProvider';
-import {Table, Row, Rows} from 'react-native-table-component';
-import {comStyle} from '../style/comStyle';
+import {
+  Table,
+  Row,
+  Rows,
+  TableWrapper,
+  Col,
+} from 'react-native-table-component';
 import GraphComponent from './GraphComponent';
 import AddNewTempModal from './AddNewTempModal';
 
 import FIcon from 'react-native-vector-icons/dist/FontAwesome5';
 import IIcon from 'react-native-vector-icons/dist/Ionicons';
+import {comStyle} from '../style/comStyle';
 
 const BodyTemp = ({route}) => {
   const {name} = route.params;
 
   const {user} = useContext(AuthContext);
   const [allData, setAllData] = useState([0]);
-  const [collectionName, setCollectionName] = useState();
+  const [displayName, setDisplayName] = useState();
+  const [unit, setUnit] = useState();
 
-  const [tableHead] = useState(['Temperature', 'Date', 'Time']);
   const [tableD, setTableD] = useState([]);
+  const [valueColumn, setValueColumn] = useState([]);
   const [visible, setVisible] = useState(false);
 
   const plusIcon = <FIcon name="plus" size={50} color="white" />;
   const refreshIcon = <IIcon name="refresh" size={22} color="black" />;
 
+  const tableHead = [`${displayName}`, 'Date', 'Time'];
+
   const getD = () => {
-    if (name === 'Body Temperature') {
-      setCollectionName('newTemp');
-    } else if (name === 'Heart Rate') {
-      () => setCollectionName('heartRate');
-    } else if (name === 'SpO2') {
-      () => setCollectionName('spo2');
-    } else if (name === 'Blood Glucose') {
-      () => setCollectionName('bloodGlucose');
+    if (name === 'newTemp') {
+      setDisplayName('Body Temperature');
+      setUnit('°F');
+    } else if (name === 'heartRate') {
+      setDisplayName('Heart Rate');
+      setUnit('bpm');
+    } else if (name === 'spo2') {
+      setDisplayName('SpO2');
+      setUnit('%');
+    } else if (name === 'bloodGlucose') {
+      setDisplayName('Blood Glucose');
+      setUnit('mmol/L');
     }
   };
 
-  console.log(collectionName);
-
   useEffect(() => {
-    getD(), getData();
+    getData(), getD(), getGraphData();
   }, []);
 
   const getData = () => {
     firestore()
-      .collection(`${collectionName}`)
+      .collection(`${name}`)
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .get()
       .then(querySnapshot => {
+        const firstCol = [];
         const tableData = [];
         querySnapshot.forEach(documentSnapshot => {
           const rowData = [];
           for (let i = 0; i < 3; i++) {
             if (i === 0) {
-              rowData.push(documentSnapshot.data().temp + '°F');
+              firstCol.push(
+                documentSnapshot.data().value +
+                  ' ' +
+                  documentSnapshot.data().unit,
+              );
             } else if (i === 1) {
               const timestamp = documentSnapshot.data().createdAt.toDate();
               const time = new Intl.DateTimeFormat('en-IN', {
                 year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
+                month: 'short',
+                day: 'numeric',
               }).format(timestamp);
               rowData.push(time);
             } else {
@@ -81,19 +97,21 @@ const BodyTemp = ({route}) => {
           tableData.push(rowData);
         });
         setTableD(tableData);
-      });
+        setValueColumn(firstCol);
+      })
+      .catch('No collection');
   };
 
   const getGraphData = () => {
     let data = [];
     firestore()
-      .collection('newTemp')
+      .collection(`${name}`)
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'asc')
       .get()
       .then(querySnapshot => {
         querySnapshot.forEach(documentSnapshot => {
-          data.push(parseFloat(documentSnapshot.data().temp));
+          data.push(parseFloat(documentSnapshot.data().value));
         });
         setAllData(data);
       });
@@ -112,10 +130,16 @@ const BodyTemp = ({route}) => {
         </Text>
       </View>
       <ScrollView style={styles.container}>
-        <AddNewTempModal visible={visible} updateVisible={setVisible} />
+        <AddNewTempModal
+          collection={name}
+          visible={visible}
+          updateVisible={setVisible}
+          unit={unit}
+          displayName={displayName}
+        />
         <View style={styles.dataContainer}>
-          <View style={comStyle.flexRow}>
-            <Text style={styles.heading}>Body temperature history</Text>
+          <View style={styles.dataHeadingContainer}>
+            <Text style={styles.heading}>{displayName} history</Text>
             <TouchableOpacity
               onPress={handleRefresh}
               style={styles.refreshIcon}>
@@ -131,11 +155,19 @@ const BodyTemp = ({route}) => {
               data={tableHead}
               textStyle={styles.tableHeadText}
             />
-            <Rows
-              style={styles.tableData}
-              textStyle={styles.tableDataText}
-              data={tableD}
-            />
+            <TableWrapper style={comStyle.flexRow}>
+              <Col
+                data={valueColumn}
+                style={styles.tableFirstCol}
+                textStyle={styles.tableDataValueText}
+              />
+              <Rows
+                style={styles.tableData}
+                textStyle={styles.tableDataText}
+                data={tableD}
+                flexArr={[1, 1]}
+              />
+            </TableWrapper>
           </Table>
         </View>
       </ScrollView>
@@ -147,8 +179,7 @@ export default BodyTemp;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'lightgrey',
-    flex: 1,
+    backgroundColor: '#eeeeee',
   },
   headerText: {
     fontSize: 25,
@@ -173,20 +204,31 @@ const styles = StyleSheet.create({
     color: '#1F3F49',
   },
   tableHead: {
-    marginLeft: 20,
+    marginLeft: 10,
     marginBottom: 10,
   },
   tableData: {
-    marginLeft: 20,
+    marginLeft: 10,
+  },
+  tableDataValueText: {
+    fontSize: 23,
+    color: '#1c4966',
+    paddingBottom: 10,
+    borderRightWidth: 0.5,
+    paddingLeft: 10,
+    borderRightColor: '#1F3F49',
+  },
+  tableFirstCol: {
+    marginLeft: 10,
   },
   tableHeadText: {
     color: 'black',
     fontSize: 17,
-    paddingLeft: 10,
+    paddingLeft: 15,
   },
   tableDataText: {
     color: 'black',
-    paddingBottom: 5,
+    paddingBottom: 15,
     fontSize: 19,
     borderRightWidth: 0.5,
     paddingLeft: 10,
@@ -194,8 +236,7 @@ const styles = StyleSheet.create({
   },
   dataContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
+    borderRadius: 50,
     margin: 8,
     marginTop: 60,
   },
@@ -214,7 +255,7 @@ const styles = StyleSheet.create({
     zIndex: 30,
     right: 180,
     top: 800,
-    backgroundColor: 'red',
+    backgroundColor: '#1c4966',
     padding: 6,
     borderRadius: 50,
     width: 60,
@@ -222,7 +263,11 @@ const styles = StyleSheet.create({
   },
   refreshIcon: {
     alignSelf: 'flex-end',
-    paddingLeft: 55,
-    paddingBottom: 10,
+    marginRight: 40,
+    marginBottom: 10,
+  },
+  dataHeadingContainer: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
   },
 });

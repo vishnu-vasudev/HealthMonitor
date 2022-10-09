@@ -9,15 +9,27 @@ import {
 import {AuthContext} from '../ContextProvider/AuthProvider';
 import {comStyle} from '../style/comStyle';
 
-const SignUpScreen = navigation => {
+const SignUpScreen = ({navigation}) => {
   const [email, setEmail] = useState();
   const [password, setPassword] = useState();
+  const [name, setName] = useState();
   const [confirmPassword, setConfirmPassword] = useState();
 
   const {register} = useContext(AuthContext);
 
+  const onSubmitHandle = () => {
+    register(email, password, name);
+    navigation.navigate('Login');
+  };
+
   return (
     <View style={styles.container}>
+      <Text style={comStyle.inputLabel}>Enter your Name</Text>
+      <TextInput
+        onChangeText={userName => setName(userName)}
+        placeholder="Name"
+        style={comStyle.inputBox}
+      />
       <Text style={comStyle.inputLabel}>Enter your e-mail</Text>
       <TextInput
         onChangeText={userEmail => setEmail(userEmail)}
@@ -32,7 +44,7 @@ const SignUpScreen = navigation => {
       />
       <Text style={comStyle.inputLabel}>Confirm your password</Text>
       <TextInput placeholder="confirm password" style={comStyle.inputBox} />
-      <TouchableOpacity onPress={() => register(email, password)}>
+      <TouchableOpacity onPress={onSubmitHandle}>
         <Text style={styles.loginBtn}>Register</Text>
       </TouchableOpacity>
     </View>
