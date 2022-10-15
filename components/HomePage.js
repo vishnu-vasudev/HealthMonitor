@@ -1,3 +1,5 @@
+/* eslint-disable no-shadow */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useContext, useState, useEffect} from 'react';
 import {
   StyleSheet,
@@ -19,11 +21,8 @@ import AddNewParamModal from './AddNewParamModal';
 
 const HomePage = ({navigation}) => {
   const {user} = useContext(AuthContext);
-  const [newParamList, setNewParamList] = useState([]);
-  const [array] = useState([]);
   const [visible, setVisible] = useState(false);
   const [newParamName, setNewParamName] = useState();
-  const [isParam, setIsParam] = useState(false);
   const [tempCardValue, setTempCardValue] = useState();
   const [heartCardValue, setHeartCardValue] = useState();
   const [spo2CardValue, setSpo2CardValue] = useState();
@@ -32,7 +31,10 @@ const HomePage = ({navigation}) => {
   const [heartDate, setHeartDate] = useState();
   const [spo2Date, setSpo2Date] = useState();
   const [sugarDate, setSugarDate] = useState();
-  const [unit, setUnit] = useState('');
+  const [unit, setUnit] = useState({});
+  const [newCollections, setNewCollections] = useState([]);
+  const [newLastData, setNewLastData] = useState({});
+  const [newParamLastDate, setNewParamLastDate] = useState({});
 
   const thermometerIcon = <FIcon name="thermometer" size={25} />;
   const heartBeatIcon = <FIcon name="heartbeat" size={25} />;
@@ -54,39 +56,65 @@ const HomePage = ({navigation}) => {
     getData(allCollection.heartRate);
     getData(allCollection.spo2);
     getData(allCollection.bloodGlucose);
-  }, []);
+    getParamNames();
+  }, [newParamName]);
 
   useEffect(() => {
-    getD(unit);
-  }, [tempDate]);
+    getUnit(allCollection.temp);
+    getUnit(allCollection.heartRate);
+    getUnit(allCollection.spo2);
+    getUnit(allCollection.bloodGlucose);
+    newCollections.map(collection => {
+      getUnit(collection);
+    });
+  }, [newCollections]);
 
-  const getD = newk => {
+  const getParamNames = () => {
+    let data = [];
     firestore()
-      .collection('Stress')
+      .collection('NewParameters')
+      .where('user_id', '==', user.uid)
+      .get()
+      .then(querySnapshot => {
+        querySnapshot.forEach(documentSnapshot => {
+          data.push(documentSnapshot.data().name);
+        });
+        setNewCollections(data);
+      });
+  };
+
+  useEffect(() => {
+    newCollectionsGetData();
+  }, [newCollections]);
+
+  const getUnit = collectionName => {
+    let unitData;
+    return firestore()
+      .collection(`${collectionName}`)
       .doc('Unit')
       .get()
       .then(documentSnapshot => {
-        if (newk === 'k') {
-          setTemp(documentSnapshot.data().unit);
-        }
-        console.log(typeof documentSnapshot.data().unit);
-        console.log(temp)
+        unitData = documentSnapshot.data().unit;
+        setUnit(unit => ({
+          ...unit,
+          [collectionName]: unitData,
+        }));
       });
-
   };
 
   const getData = dataB => {
     let data;
     firestore()
       .collection(`${dataB}`)
+      .doc('Data')
+      .collection('Alldata')
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .limit(1)
       .get()
       .then(querySnapshot => {
         querySnapshot.forEach(documentSnapshot => {
-          data =
-            documentSnapshot.data().value + ' ' + documentSnapshot.data().unit;
+          data = documentSnapshot.data().value;
           const timestamp = documentSnapshot.data().createdAt.toDate();
           const time = new Intl.DateTimeFormat('en-IN', {
             year: 'numeric',
@@ -101,8 +129,13 @@ const HomePage = ({navigation}) => {
             setHeartDate(time);
           } else if (dataB === 'spo2') {
             setSpo2Date(time);
-          } else {
+          } else if (dataB === 'bloodGlucose') {
             setSugarDate(time);
+          } else {
+            setNewParamLastDate(newParamLastDate => ({
+              ...newParamLastDate,
+              [dataB]: time,
+            }));
           }
         });
         if (dataB === 'newTemp') {
@@ -111,22 +144,22 @@ const HomePage = ({navigation}) => {
           setHeartCardValue(data);
         } else if (dataB === 'spo2') {
           setSpo2CardValue(data);
-        } else {
+        } else if (dataB === 'bloodGlucose') {
           setSugarCardValue(data);
+        } else {
+          setNewLastData(newLastData => ({
+            ...newLastData,
+            [dataB]: data,
+          }));
         }
       });
   };
 
-  if (isParam) {
-    array.push(
-      <View key={newParamName} style={[style.secondCard, style.card]}>
-        <Text style={[style.cardText, style.cardHeader]}>{newParamName}</Text>
-      </View>,
-    );
-    setNewParamList(array);
-    setIsParam(false);
-  }
-
+  const newCollectionsGetData = () => {
+    newCollections.map(collection => {
+      getData(collection);
+    });
+  };
 
   return (
     <>
@@ -140,7 +173,6 @@ const HomePage = ({navigation}) => {
           visible={visible}
           updateVisible={setVisible}
           updateNewParam={setNewParamName}
-          updateIsParam={setIsParam}
         />
         <Text style={style.lineIcon}>{line}</Text>
         <View style={style.dataContainer}>
@@ -155,8 +187,10 @@ const HomePage = ({navigation}) => {
                   {thermometerIcon} Body Temperature
                 </Text>
                 <View style={style.cardResultContainer}>
-                  <Text style={style.lastTempText}>{tempCardValue}</Text>
-                  <Text style={style.lastDataDate}>on {tempDate}</Text>
+                  <Text style={style.lastTempText}>
+                    {tempCardValue} {unit.newTemp}
+                  </Text>
+                  <Text style={style.lastDataDate}>{tempDate}</Text>
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -169,8 +203,10 @@ const HomePage = ({navigation}) => {
                   {heartBeatIcon} Heart Rate
                 </Text>
                 <View style={style.cardResultContainer}>
-                  <Text style={style.lastTempText}>{heartCardValue}</Text>
-                  <Text style={style.lastDataDate}>on {heartDate}</Text>
+                  <Text style={style.lastTempText}>
+                    {heartCardValue} {unit.heartRate}
+                  </Text>
+                  <Text style={style.lastDataDate}>{heartDate}</Text>
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -181,8 +217,10 @@ const HomePage = ({navigation}) => {
                   {spo2Icon} SpO2
                 </Text>
                 <View style={style.cardResultContainer}>
-                  <Text style={style.lastTempText}>{spo2CardValue}</Text>
-                  <Text style={style.lastDataDate}>on {spo2Date}</Text>
+                  <Text style={style.lastTempText}>
+                    {spo2CardValue} {unit.spo2}
+                  </Text>
+                  <Text style={style.lastDataDate}>{spo2Date}</Text>
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -195,12 +233,37 @@ const HomePage = ({navigation}) => {
                   {bloodSugarIcon} Blood Glucose
                 </Text>
                 <View style={style.cardResultContainer}>
-                  <Text style={style.lastTempText}>{sugarCardValue}</Text>
-                  <Text style={style.lastDataDate}>on {sugarDate}</Text>
+                  <Text style={style.lastTempText}>
+                    {sugarCardValue} {unit.bloodGlucose}
+                  </Text>
+                  <Text style={style.lastDataDate}>{sugarDate}</Text>
                 </View>
               </View>
             </TouchableWithoutFeedback>
-            {newParamList.map(value => value)}
+            {newCollections.map(collection => {
+              () => getData(collection);
+              return (
+                <TouchableWithoutFeedback
+                  key={collection}
+                  onPress={() =>
+                    navigation.navigate('BodyTemp', {name: collection})
+                  }>
+                  <View style={[style.secondCard, style.card]}>
+                    <Text style={[style.cardText, style.cardHeader]}>
+                      {collection}
+                    </Text>
+                    <View style={style.cardResultContainer}>
+                      <Text style={style.lastTempText}>
+                        {newLastData[collection]} {unit[collection]}
+                      </Text>
+                      <Text style={style.lastDataDate}>
+                        {newParamLastDate[collection]}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              );
+            })}
           </View>
           <TouchableOpacity onPress={() => setVisible(true)}>
             <Text style={style.newParamButton}>{plusIcon} Add new</Text>

@@ -1,8 +1,9 @@
 import React from 'react';
 import {StyleSheet} from 'react-native';
-import {LineChart} from 'react-native-chart-kit';
+import {BarChart} from 'react-native-chart-kit';
 
 const GraphComponent = allData => {
+  // const withoutDuplicates = [...new Set(xLabels)];
   const chartConfig = {
     backgroundGradientFromOpacity: 0,
     backgroundGradientToOpacity: 0,
@@ -10,21 +11,25 @@ const GraphComponent = allData => {
     decimalPlaces: 0,
   };
 
+  // useEffect(() => {
+  //   checkXLabel(allData.dateValue);
+  // }, []);
+
+  // const checkXLabel = date => {
+
+  //   console.log(allData.dateValue);
+  // };
+  // for (let i = 0; i < allData.dateValue.length - 1; i++) {
+  //   if (allData.dateValue[i] === allData.dateValue[i + 1]) {
+  //     let arr = allData.dateValue;
+  //     // arr[i] = 'seo';
+  //     // console.log(arr);
+  //     setXLabels(arr)
+  //   }
+  // }
+
   const data = {
-    labels: [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ],
+    labels: allData.dateValue,
     datasets: [
       {
         data: allData.value,
@@ -35,16 +40,14 @@ const GraphComponent = allData => {
   };
 
   return (
-    <LineChart
+    <BarChart
       data={data}
-      width={380}
-      height={150}
+      width={350}
+      height={170}
       chartConfig={chartConfig}
       withInnerLines={false}
-      withOuterLines
-      withShadow={false}
-      bezier
       style={styles.graph}
+      fromZero
     />
   );
 };

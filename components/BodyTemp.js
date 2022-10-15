@@ -1,3 +1,5 @@
+/* eslint-disable no-shadow */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useContext, useState, useEffect} from 'react';
 import {
   StyleSheet,
@@ -15,12 +17,13 @@ import {
   TableWrapper,
   Col,
 } from 'react-native-table-component';
-import GraphComponent from './GraphComponent';
+// import GraphComponent from './GraphComponent';
 import AddNewTempModal from './AddNewTempModal';
 
 import FIcon from 'react-native-vector-icons/dist/FontAwesome5';
 import IIcon from 'react-native-vector-icons/dist/Ionicons';
 import {comStyle} from '../style/comStyle';
+import VictoryComponent from './VictoryComponent';
 
 const BodyTemp = ({route}) => {
   const {name} = route.params;
@@ -33,6 +36,7 @@ const BodyTemp = ({route}) => {
   const [tableD, setTableD] = useState([]);
   const [valueColumn, setValueColumn] = useState([]);
   const [visible, setVisible] = useState(false);
+  const [allDates, setAllDates] = useState([]);
 
   const plusIcon = <FIcon name="plus" size={50} color="white" />;
   const refreshIcon = <IIcon name="refresh" size={22} color="black" />;
@@ -42,26 +46,35 @@ const BodyTemp = ({route}) => {
   const getD = () => {
     if (name === 'newTemp') {
       setDisplayName('Body Temperature');
-      setUnit('°F');
     } else if (name === 'heartRate') {
       setDisplayName('Heart Rate');
-      setUnit('bpm');
     } else if (name === 'spo2') {
       setDisplayName('SpO2');
-      setUnit('%');
     } else if (name === 'bloodGlucose') {
       setDisplayName('Blood Glucose');
-      setUnit('mmol/L');
+    } else {
+      setDisplayName(name);
     }
   };
 
   useEffect(() => {
-    getData(), getD(), getGraphData();
+    getData();
+    getD();
+    getGraphData();
+    fetchUnit();
   }, []);
+
+  // const getParamNames = () => {
+  //   firestore()
+  //     .collection('ParameterName')
+
+  // }
 
   const getData = () => {
     firestore()
       .collection(`${name}`)
+      .doc('Data')
+      .collection('Alldata')
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .get()
@@ -72,11 +85,7 @@ const BodyTemp = ({route}) => {
           const rowData = [];
           for (let i = 0; i < 3; i++) {
             if (i === 0) {
-              firstCol.push(
-                documentSnapshot.data().value +
-                  ' ' +
-                  documentSnapshot.data().unit,
-              );
+              firstCol.push(documentSnapshot.data().value);
             } else if (i === 1) {
               const timestamp = documentSnapshot.data().createdAt.toDate();
               const time = new Intl.DateTimeFormat('en-IN', {
@@ -85,6 +94,10 @@ const BodyTemp = ({route}) => {
                 day: 'numeric',
               }).format(timestamp);
               rowData.push(time);
+              const month = new Intl.DateTimeFormat('en-IN', {
+                month: 'short',
+              }).format(timestamp);
+              setAllDates(allDates => [...allDates, month]);
             } else {
               const timestamp = documentSnapshot.data().createdAt.toDate();
               const date = new Intl.DateTimeFormat('en-US', {
@@ -98,14 +111,27 @@ const BodyTemp = ({route}) => {
         });
         setTableD(tableData);
         setValueColumn(firstCol);
+        setAllDates(allDates => allDates.reverse());
       })
       .catch('No collection');
+  };
+
+  const fetchUnit = () => {
+    firestore()
+      .collection(`${name}`)
+      .doc('Unit')
+      .get()
+      .then(documentSnapshot => {
+        setUnit(documentSnapshot.data().unit);
+      });
   };
 
   const getGraphData = () => {
     let data = [];
     firestore()
       .collection(`${name}`)
+      .doc('Data')
+      .collection('Alldata')
       .where('user_id', '==', user.uid)
       .orderBy('createdAt', 'asc')
       .get()
@@ -146,8 +172,11 @@ const BodyTemp = ({route}) => {
               <Text>{refreshIcon}</Text>
             </TouchableOpacity>
           </View>
+          {/* <View style={styles.graphContainer}>
+            <GraphComponent value={allData} dateValue={allDates} />
+          </View> */}
           <View style={styles.graphContainer}>
-            <GraphComponent value={allData} />
+            <VictoryComponent value={allData} dateValue={allDates} />
           </View>
           <Table style={styles.table}>
             <Row
@@ -157,7 +186,7 @@ const BodyTemp = ({route}) => {
             />
             <TableWrapper style={comStyle.flexRow}>
               <Col
-                data={valueColumn}
+                data={valueColumn.map(value => value + ' ' + unit)}
                 style={styles.tableFirstCol}
                 textStyle={styles.tableDataValueText}
               />

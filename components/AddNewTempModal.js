@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -22,37 +22,37 @@ const AddNewTempModal = ({
 }) => {
   const [showModal, setShowModal] = useState();
   const {user} = useContext(AuthContext);
-  const [scaleValue] = useState(new Animated.Value(0));
+  // const [scaleValue] = useState(new Animated.Value(0));
   const [bodyTemp, setBodyTemp] = useState();
   var [textInput] = useState();
 
   const closeIcon = <AIcon name="close" size={22} />;
 
   useEffect(() => {
+    const toggleModal = () => {
+      if (visible) {
+        setShowModal(true);
+        // Animated.timing(scaleValue, {
+        //   toValue: 1,
+        //   duration: 300,
+        //   useNativeDriver: false,
+        // }).start();
+      } else {
+        setShowModal(false);
+      }
+    };
     toggleModal();
   }, [visible]);
-
-  const toggleModal = () => {
-    if (visible) {
-      setShowModal(true);
-      Animated.timing(scaleValue, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      setShowModal(false);
-    }
-  };
 
   const storeData = () => {
     firestore()
       .collection(`${collection}`)
+      .doc('Data')
+      .collection('Alldata')
       .add({
         value: bodyTemp,
         user_id: user.uid,
         createdAt: firestore.FieldValue.serverTimestamp(),
-        unit: unit,
       })
       .then(() => {
         console.log('Value added!');
@@ -73,8 +73,7 @@ const AddNewTempModal = ({
   return (
     <Modal transparent={true} visible={showModal}>
       <View style={styles.modalBackground}>
-        <Animated.View
-          style={[styles.modalContainer, {transform: [{scale: scaleValue}]}]}>
+        <Animated.View style={styles.modalContainer}>
           <View style={styles.modalData}>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>

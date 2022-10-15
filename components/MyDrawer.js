@@ -7,7 +7,6 @@ import Icon from 'react-native-vector-icons/dist/MaterialCommunityIcons';
 import FIcon from 'react-native-vector-icons/dist/FontAwesome';
 
 const MyDrawer = props => {
-  const {navigation} = props;
   const handWave = <Icon name="hand-wave" size={25} color="#fbc494" />;
   const profileIcon = <FIcon name="user-circle" size={60} />;
 

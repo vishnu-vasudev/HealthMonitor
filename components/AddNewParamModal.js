@@ -16,7 +16,6 @@ const AddNewParamModal = ({
   visible,
   updateVisible,
   updateNewParam,
-  updateIsParam,
 }) => {
   const [showModal, setShowModal] = useState();
   const {user} = useContext(AuthContext);
@@ -27,22 +26,21 @@ const AddNewParamModal = ({
   const closeIcon = <AIcon name="close" size={22} />;
 
   useEffect(() => {
-    toggleModal();
+    const toggleModal = () => {
+      if (visible) {
+        setShowModal(true);
+        // Animated.spring(scaleValue, {
+        //   toValue: 1,
+        //   duration: 300,
+        //   useNativeDriver: true,
+        // }).start();
+      } else {
+        setShowModal(false);
+      }
+    };
+    toggleModal()
   }, [visible]);
-
-  const toggleModal = () => {
-    if (visible) {
-      setShowModal(true);
-      // Animated.spring(scaleValue, {
-      //   toValue: 1,
-      //   duration: 300,
-      //   useNativeDriver: true,
-      // }).start();
-    } else {
-      setShowModal(false);
-    }
-  };
-
+ 
   const handleClose = () => {
     setShowModal(false);
     updateVisible(false);
@@ -54,18 +52,26 @@ const AddNewParamModal = ({
       .doc('Unit')
       .set({
         unit: newUnit,
+        user_id: user.uid,
       })
       .then(() => {
         console.log('New parameter created with unit');
       });
   };
 
+  const storeParamName = () => {
+    firestore().collection('NewParameters').add({
+      name: newParam,
+      user_id: user.uid,
+    });
+  };
+
   const handleSubmit = () => {
     storeData();
+    storeParamName();
     updateNewParam(newParam);
     setShowModal(false);
     updateVisible(false);
-    updateIsParam(true);
   };
 
   return (
